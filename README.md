@@ -6,3 +6,4 @@ Instead of abusing StringMaps for O(1) duplicate value protection and lookup, th
 
 # TODO
 - Expose set iterators for plugins to use.
+- Expand constructors to allow sets to be initialized with argumented values. Possibly the same thing with `.Insert` functions.
