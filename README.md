@@ -1,2 +1,5 @@
 # SM-Sets
- Implements std::set into SourcePawn
+ Implements std::unordered_set into SourcePawn
+
+# TODO
+- Expose set iterators for plugins to use.
