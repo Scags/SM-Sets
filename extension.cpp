@@ -38,6 +38,8 @@ SMSet g_Set;		/**< Global singleton for extension's main interface */
 
 HandleType_t g_StringSet = BAD_HANDLE;
 HandleType_t g_CellSet = BAD_HANDLE;
+HandleType_t g_StringIterator = BAD_HANDLE;
+HandleType_t g_CellIterator = BAD_HANDLE;
 
 bool SMSet::SDK_OnLoad(char *error, size_t maxlen, bool late)
 {
@@ -53,6 +55,20 @@ bool SMSet::SDK_OnLoad(char *error, size_t maxlen, bool late)
 	if (g_CellSet == BAD_HANDLE)
 	{
 		snprintf(error, maxlen, "Could not create CellSet handle (err: %d)", err);
+		return false;
+	}
+
+	g_StringIterator = handlesys->CreateType("StringSetIterator", this, 0, NULL, NULL, myself->GetIdentity(), &err);
+	if (g_StringIterator == BAD_HANDLE)
+	{
+		snprintf(error, maxlen, "Could not create StringSetIterator handle (err: %d)", err);
+		return false;
+	}
+
+	g_CellIterator = handlesys->CreateType("CellSetIterator", this, 0, NULL, NULL, myself->GetIdentity(), &err);
+	if (g_CellIterator == BAD_HANDLE)
+	{
+		snprintf(error, maxlen, "Could not create CellSetIterator handle (err: %d)", err);
 		return false;
 	}
 
@@ -73,6 +89,10 @@ void SMSet::OnHandleDestroy(HandleType_t type, void *object)
 		delete (std::unordered_set< cell_t > *)object;
 	else if (type == g_StringSet)
 		delete (std::unordered_set< std::string > *)object;
+	else if (type == g_CellIterator)
+		delete (std::unordered_set< cell_t >::const_iterator *)object;
+	else if (type == g_StringIterator)
+		delete (std::unordered_set< std::string >::const_iterator *)object;
 }
 
 SMEXT_LINK(&g_Set);

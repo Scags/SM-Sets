@@ -5,5 +5,7 @@
 
 extern HandleType_t g_StringSet;
 extern HandleType_t g_CellSet;
+extern HandleType_t g_StringIterator;
+extern HandleType_t g_CellIterator;
 
 #endif 	// NATIVES_INCLUDED

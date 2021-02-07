@@ -1,23 +1,31 @@
 #include "natives.h"
 #include "extension.h"
+#include "iterator_container.h"
 #include <unordered_set>
 #include <string>
 
-#define GET_SMSET(set, htype)                                                                      \
+#define GET_HNDL(h, htype)                                                                         \
 	do                                                                                             \
 	{                                                                                              \
 		Handle_t hndl = (Handle_t)params[1];                                                       \
 		HandleError err;                                                                           \
 		HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());                        \
-		if ((err = handlesys->ReadHandle(hndl, htype, &sec, (void **)&set)) != HandleError_None)   \
+		if ((err = handlesys->ReadHandle(hndl, htype, &sec, (void **)&h)) != HandleError_None)     \
 		{                                                                                          \
 			return pContext->ThrowNativeError("Invalid Handle %x (error %d)", hndl, err);          \
 		}                                                                                          \
 	} while (0)
 
+// Lol no
+typedef std::unordered_set< cell_t > cellset;
+typedef std::unordered_set< std::string > stringset;
+
+typedef IteratorContainer< cellset > celliter;
+typedef IteratorContainer< stringset > stringiter;
+
 static cell_t Native_CellSet(IPluginContext *pContext, const cell_t *params)
 {
-	std::unordered_set< cell_t > *set = new std::unordered_set< cell_t >();
+	cellset *set = new cellset();
 
 	Handle_t hndl = handlesys->CreateHandle(g_CellSet, set, pContext->GetIdentity(), myself->GetIdentity(), NULL);
 
@@ -27,69 +35,69 @@ static cell_t Native_CellSet(IPluginContext *pContext, const cell_t *params)
 		return pContext->ThrowNativeError("Failed to create set");
 	}
 
+	for (int i = 1; i <= params[0]; ++i)
+	{
+		cell_t *out;
+		pContext->LocalToPhysAddr(params[i], &out);
+		set->insert(*out);
+	}
+
 	return hndl;
 }
 
 static cell_t Native_CellSet_Insert(IPluginContext *pContext, const cell_t *params)
 {
-	std::unordered_set< cell_t > *set;
-	GET_SMSET(set, g_CellSet);
-	set->insert(params[2]);
+	cellset *set;
+	GET_HNDL(set, g_CellSet);
+	for (int i = 2; i <= params[0]; ++i)
+	{
+		cell_t *out;
+		pContext->LocalToPhysAddr(params[i], &out);
+		set->insert(*out);
+	}
 	return 0;
 }
 
 static cell_t Native_CellSet_Erase(IPluginContext *pContext, const cell_t *params)
 {
-	std::unordered_set< cell_t > *set;
-	GET_SMSET(set, g_CellSet);
-	set->erase(params[2]);
+	cellset *set;
+	GET_HNDL(set, g_CellSet);
+	for (int i = 2; i <= params[0]; ++i)
+	{
+		cell_t *out;
+		pContext->LocalToPhysAddr(params[i], &out);
+		set->erase(*out);
+	}
 	return 0;
 }
 
 static cell_t Native_CellSet_Find(IPluginContext *pContext, const cell_t *params)
 {
-	std::unordered_set< cell_t > *set;
-	GET_SMSET(set, g_CellSet);
+	cellset *set;
+	GET_HNDL(set, g_CellSet);
 	return set->find(params[2]) != set->end();
 }
 
-//static cell_t Native_CellSet_IterGet(IPluginContext *pContext, const cell_t *params)
-//{
-//	std::unordered_set< cell_t > *set;
-//	GET_SMSET(set, g_CellSet);
-//	auto iter = *reinterpret_cast< std::unordered_set< cell_t >::iterator * >(params[2]);
-//	return *iter;
-//}
-//
-//static cell_t Native_CellSet_IterNext(IPluginContext *pContext, const cell_t *params)
-//{
-//	std::unordered_set< cell_t > *set;
-//	GET_SMSET(set, g_CellSet);
-//	auto iter = *reinterpret_cast< std::unordered_set< cell_t >::iterator * >(params[2]);
-//	iter++;
-//	return (cell_t)&iter;
-//}
-
 static cell_t Native_CellSet_Size(IPluginContext *pContext, const cell_t *params)
 {
-	std::unordered_set< cell_t > *set;
-	GET_SMSET(set, g_CellSet);
+	cellset *set;
+	GET_HNDL(set, g_CellSet);
 	return (cell_t)set->size();
 }
 
 static cell_t Native_CellSet_Empty(IPluginContext *pContext, const cell_t *params)
 {
-	std::unordered_set< cell_t > *set;
-	GET_SMSET(set, g_CellSet);
+	cellset *set;
+	GET_HNDL(set, g_CellSet);
 	return (cell_t)set->empty();
 }
 
 static cell_t Native_CellSet_Swap(IPluginContext *pContext, const cell_t *params)
 {
-	std::unordered_set< cell_t > *set;
-	GET_SMSET(set, g_CellSet);
+	cellset *set;
+	GET_HNDL(set, g_CellSet);
 
-	std::unordered_set< cell_t > *set2;
+	cellset *set2;
 	HandleError err;
 	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
 
@@ -104,10 +112,10 @@ static cell_t Native_CellSet_Swap(IPluginContext *pContext, const cell_t *params
 
 static cell_t Native_CellSet_Equals(IPluginContext *pContext, const cell_t *params)
 {
-	std::unordered_set< cell_t > *set;
-	GET_SMSET(set, g_CellSet);
+	cellset *set;
+	GET_HNDL(set, g_CellSet);
 
-	std::unordered_set< cell_t > *set2;
+	cellset *set2;
 	HandleError err;
 	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
 
@@ -121,29 +129,33 @@ static cell_t Native_CellSet_Equals(IPluginContext *pContext, const cell_t *para
 
 static cell_t Native_CellSet_Clear(IPluginContext *pContext, const cell_t *params)
 {
-	std::unordered_set< cell_t > *set;
-	GET_SMSET(set, g_CellSet);
+	cellset *set;
+	GET_HNDL(set, g_CellSet);
 	set->clear();
 	return 0;
 }
 
-//static cell_t Native_CellSet_Begin(IPluginContext *pContext, const cell_t *params)
-//{
-//	std::unordered_set< cell_t > *set;
-//	GET_SMSET(set, g_CellSet);
-//	return (cell_t)&set->begin();
-//}
-//
-//static cell_t Native_CellSet_End(IPluginContext *pContext, const cell_t *params)
-//{
-//	std::unordered_set< cell_t > *set;
-//	GET_SMSET(set, g_CellSet);
-//	return (cell_t)&set->end();
-//}
+static cell_t Native_CellSet_Iter(IPluginContext *pContext, const cell_t *params)
+{
+	cellset *set;
+	GET_HNDL(set, g_CellSet);
+	
+	celliter *it = new celliter(set, set->begin(), set->end());
+	Handle_t hndl = handlesys->CreateHandle(g_CellIterator, it, pContext->GetIdentity(), myself->GetIdentity(), NULL);
+
+	if (!hndl)
+	{
+		delete it;
+		return pContext->ThrowNativeError("Failed to create set iterator");
+	}
+
+	return hndl;
+}
+
 
 static cell_t Native_StringSet(IPluginContext *pContext, const cell_t *params)
 {
-	std::unordered_set< std::string > *set = new std::unordered_set< std::string >();
+	stringset *set = new stringset();
 
 	Handle_t hndl = handlesys->CreateHandle(g_StringSet, set, pContext->GetIdentity(), myself->GetIdentity(), NULL);
 
@@ -153,23 +165,33 @@ static cell_t Native_StringSet(IPluginContext *pContext, const cell_t *params)
 		return pContext->ThrowNativeError("Failed to create set");
 	}
 
+	for (int i = 1; i <= params[0]; ++i)
+	{
+		char *str;
+		pContext->LocalToString(params[i], &str);
+		set->insert(std::string(str));
+	}
+
 	return hndl;
 }
 
 static cell_t Native_StringSet_Insert(IPluginContext *pContext, const cell_t *params)
 {
-	std::unordered_set< std::string > *set;
-	GET_SMSET(set, g_StringSet);
-	char *str;
-	pContext->LocalToString(params[2], &str);
-	set->insert(std::string(str));
+	stringset *set;
+	GET_HNDL(set, g_StringSet);
+	for (int i = 2; i <= params[0]; ++i)
+	{
+		char *str;
+		pContext->LocalToString(params[i], &str);
+		set->insert(std::string(str));
+	}
 	return 0;
 }
 
 static cell_t Native_StringSet_Find(IPluginContext *pContext, const cell_t *params)
 {
-	std::unordered_set< std::string > *set;
-	GET_SMSET(set, g_StringSet);
+	stringset *set;
+	GET_HNDL(set, g_StringSet);
 	char *str;
 	pContext->LocalToString(params[2], &str);
 	return set->find(std::string(str)) != set->end();
@@ -177,51 +199,37 @@ static cell_t Native_StringSet_Find(IPluginContext *pContext, const cell_t *para
 
 static cell_t Native_StringSet_Erase(IPluginContext *pContext, const cell_t *params)
 {
-	std::unordered_set< std::string > *set;
-	GET_SMSET(set, g_StringSet);
-	char *str;
-	pContext->LocalToString(params[2], &str);
-	set->erase(std::string(str));
+	stringset *set;
+	GET_HNDL(set, g_StringSet);
+	for (int i = 2; i <= params[0]; ++i)
+	{
+		char *str;
+		pContext->LocalToString(params[i], &str);
+		set->erase(std::string(str));
+	}
 	return 0;
 }
 
-//static cell_t Native_StringSet_IterGet(IPluginContext *pContext, const cell_t *params)
-//{
-//	std::unordered_set< std::string > *set;
-//	GET_SMSET(set, g_StringSet);
-//	auto iter = *reinterpret_cast< std::unordered_set< std::string >::iterator * >(params[2]);
-//	return pContext->StringToLocal(params[3], params[4], iter->c_str());
-//}
-//
-//static cell_t Native_StringSet_IterNext(IPluginContext *pContext, const cell_t *params)
-//{
-//	std::unordered_set< std::string > *set;
-//	GET_SMSET(set, g_StringSet);
-//	auto iter = *reinterpret_cast< std::unordered_set< std::string >::iterator * >(params[2]);
-//	iter++;
-//	return (cell_t)&iter;
-//}
-
 static cell_t Native_StringSet_Size(IPluginContext *pContext, const cell_t *params)
 {
-	std::unordered_set< std::string > *set;
-	GET_SMSET(set, g_StringSet);
+	stringset *set;
+	GET_HNDL(set, g_StringSet);
 	return (cell_t)set->size();
 }
 
 static cell_t Native_StringSet_Empty(IPluginContext *pContext, const cell_t *params)
 {
-	std::unordered_set< std::string > *set;
-	GET_SMSET(set, g_StringSet);
+	stringset *set;
+	GET_HNDL(set, g_StringSet);
 	return (cell_t)set->empty();
 }
 
 static cell_t Native_StringSet_Swap(IPluginContext *pContext, const cell_t *params)
 {
-	std::unordered_set< std::string > *set;
-	GET_SMSET(set, g_StringSet);
+	stringset *set;
+	GET_HNDL(set, g_StringSet);
 
-	std::unordered_set< std::string > *set2;
+	stringset *set2;
 	HandleError err;
 	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
 
@@ -236,10 +244,10 @@ static cell_t Native_StringSet_Swap(IPluginContext *pContext, const cell_t *para
 
 static cell_t Native_StringSet_Equals(IPluginContext *pContext, const cell_t *params)
 {
-	std::unordered_set< std::string > *set;
-	GET_SMSET(set, g_StringSet);
+	stringset *set;
+	GET_HNDL(set, g_StringSet);
 
-	std::unordered_set< std::string > *set2;
+	stringset *set2;
 	HandleError err;
 	HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity());
 
@@ -253,53 +261,86 @@ static cell_t Native_StringSet_Equals(IPluginContext *pContext, const cell_t *pa
 
 static cell_t Native_StringSet_Clear(IPluginContext *pContext, const cell_t *params)
 {
-	std::unordered_set< std::string > *set;
-	GET_SMSET(set, g_StringSet);
+	stringset *set;
+	GET_HNDL(set, g_StringSet);
 	set->clear();
 	return 0;
 }
 
-//static cell_t Native_StringSet_Begin(IPluginContext *pContext, const cell_t *params)
-//{
-//	std::unordered_set< std::string > *set;
-//	GET_SMSET(set, g_StringSet);
-//	return (cell_t)set->begin();
-//}
-//
-//static cell_t Native_StringSet_End(IPluginContext *pContext, const cell_t *params)
-//{
-//	std::unordered_set< std::string > *set;
-//	GET_SMSET(set, g_StringSet);
-//	return (cell_t)set->end();
-//}
+static cell_t Native_StringSet_Iter(IPluginContext *pContext, const cell_t *params)
+{
+	stringset *set;
+	GET_HNDL(set, g_StringSet);
+	stringiter *it = new stringiter(set, set->begin(), set->end());
+	Handle_t hndl = handlesys->CreateHandle(g_StringIterator, it, pContext->GetIdentity(), myself->GetIdentity(), NULL);
+
+	if (!hndl)
+	{
+		delete it;
+		return pContext->ThrowNativeError("Failed to create set iterator");
+	}
+
+	return hndl;
+}
+
+static cell_t Native_CIter_Next(IPluginContext *pContext, const cell_t *params)
+{
+	celliter *it;
+	GET_HNDL(it, g_CellIterator);
+	return it->Next();
+}
+
+static cell_t Native_CIter_Get(IPluginContext *pContext, const cell_t *params)
+{
+	celliter *it;
+	GET_HNDL(it, g_CellIterator);
+	return *it->Current();
+}
+
+static cell_t Native_SIter_Next(IPluginContext *pContext, const cell_t *params)
+{
+	stringiter *it;
+	GET_HNDL(it, g_StringIterator);
+	return it->Next();
+}
+
+static cell_t Native_SIter_Get(IPluginContext *pContext, const cell_t *params)
+{
+	stringiter *it;
+	GET_HNDL(it, g_StringIterator);
+	std::string s = *it->Current();
+	pContext->StringToLocal(params[2], params[3], s.c_str());
+	return 0;
+}
+
 
 sp_nativeinfo_t g_Natives[] = {
 	{"CellSet.CellSet", 			Native_CellSet},
 	{"CellSet.Insert", 				Native_CellSet_Insert},
 	{"CellSet.Erase", 				Native_CellSet_Erase},
 	{"CellSet.Find", 				Native_CellSet_Find},
-//	{"CellSet.IterGet", 			Native_CellSet_IterGet},
-//	{"CellSet.IterNext", 			Native_CellSet_IterNext},
 	{"CellSet.Size.get", 			Native_CellSet_Size},
 	{"CellSet.Empty.get", 			Native_CellSet_Empty},
 	{"CellSet.Swap", 				Native_CellSet_Swap},
-	{"CellSet.Equals", 			Native_CellSet_Equals},
+	{"CellSet.Equals",				Native_CellSet_Equals},
 	{"CellSet.Clear", 				Native_CellSet_Clear},
-//	{"CellSet.Begin", 				Native_CellSet_Begin},
-//	{"CellSet.End", 				Native_CellSet_End},
+	{"CellSet.Iterator", 			Native_CellSet_Iter},
 
 	{"StringSet.StringSet", 		Native_StringSet},
 	{"StringSet.Insert", 			Native_StringSet_Insert},
 	{"StringSet.Find", 				Native_StringSet_Find},
 	{"StringSet.Erase", 			Native_StringSet_Erase},
-//	{"StringSet.IterGet", 			Native_StringSet_IterGet},
-//	{"StringSet.IterNext", 			Native_StringSet_IterNext},
 	{"StringSet.Size.get", 			Native_StringSet_Size},
 	{"StringSet.Empty.get", 		Native_StringSet_Empty},
 	{"StringSet.Swap", 				Native_StringSet_Swap},
 	{"StringSet.Equals", 			Native_StringSet_Equals},
 	{"StringSet.Clear", 			Native_StringSet_Clear},
-//	{"StringSet.Begin", 			Native_StringSet_Begin},
-//	{"StringSet.End", 				Native_StringSet_End},
+	{"StringSet.Iterator", 			Native_StringSet_Iter},
+
+	{"CellSetIterator.Next", 		Native_CIter_Next},
+	{"CellSetIterator.Get", 		Native_CIter_Get},
+
+	{"StringSetIterator.Next", 		Native_SIter_Next},
+	{"StringSetIterator.Get", 		Native_SIter_Get},
 	{NULL, NULL}
 };
