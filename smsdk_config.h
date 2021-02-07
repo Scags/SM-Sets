@@ -40,7 +40,7 @@
 /* Basic information exposed publicly */
 #define SMEXT_CONF_NAME			"SM-Sets"
 #define SMEXT_CONF_DESCRIPTION	"Exposes std::unordered_set for SourcePawn"
-#define SMEXT_CONF_VERSION		"1.0.1.2"
+#define SMEXT_CONF_VERSION		"1.0.1.3"
 #define SMEXT_CONF_AUTHOR		"Scag"
 #define SMEXT_CONF_URL			"https://github.com/Scags?tab=repositories"
 #define SMEXT_CONF_LOGTAG		"SM-SET"

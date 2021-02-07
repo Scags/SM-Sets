@@ -81,6 +81,8 @@ void SMSet::SDK_OnUnload()
 {
 	handlesys->RemoveType(g_StringSet, myself->GetIdentity());
 	handlesys->RemoveType(g_CellSet, myself->GetIdentity());
+	handlesys->RemoveType(g_StringIterator, myself->GetIdentity());
+	handlesys->RemoveType(g_CellIterator, myself->GetIdentity());
 }
 
 void SMSet::OnHandleDestroy(HandleType_t type, void *object)
